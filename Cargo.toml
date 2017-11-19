@@ -1,0 +1,6 @@
+[package]
+name = "klv_parser"
+version = "0.1.0"
+authors = ["Jeramy Singleton <jeramyRR@gmail.com>"]
+
+[dependencies]
