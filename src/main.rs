@@ -13,12 +13,3 @@ fn main() {
   let klvs = parser::parse(&buffer);
 }
 
-#[cfg(test)]
-mod tests {
-
-  #[test]
-  fn klv_test() {
-    let data = include_bytes!("../test/assets/out.klv");
-    println!("bytes:\n{:?}", &data[0..100]);
-  }
-}
