@@ -136,20 +136,20 @@ impl<'a> Parser<'a> {
       // here we have to check for BER short or long form.
       // short form will have a 0 as the MSB, so the value
       // of this byte will be 127 or less.
-      if byte < 128 {
-        self.increment_cursor(1);
-        Some(byte as usize)
+      let bytes_length = if byte < 128 {
+        1
       } else {
-        // we now know that the BER form is the long form.
-        // We now have to check the remaining bytes to see
-        // how many more bytes will contain the actual length
-        // of the value portion of this packet.
-        let bytes_length: usize = (byte - 127) as usize;
-        let u8s_array: &[u8] = &self.input[self.cursor..self.cursor + bytes_length];
-        self.increment_cursor(bytes_length);
-        let num: u32 = u8s_to_u32(u8s_array);
-        Some(num as usize)
-        }
+        // We know that the BER form is the long form, so we now have to check
+        // the remaining seven bits to see how many more bytes will contain
+        // the actual length of the value portion of this packet.
+        self.increment_cursor(1);
+        (byte ^ 0b1000_0000) as usize
+      };
+
+      let u8s_array: &[u8] = &self.input[self.cursor..self.cursor + bytes_length];
+      let num: u32 = u8s_to_u32(u8s_array);
+      self.increment_cursor(bytes_length);
+      Some(num as usize)
     } else {
       None
     }
@@ -206,6 +206,7 @@ pub fn parse(bytes: &[u8]) -> Vec<Klv> {
 pub fn u8s_to_u32(bytes: &[u8]) -> u32 {
   let size: usize = bytes.len();
   match size {
+    1 => bytes[0] as u32,
     2 => two_u8s_to_u32(bytes),
     3 => three_u8s_to_u32(bytes),
     4 => four_u8s_to_u32(bytes),
@@ -235,9 +236,9 @@ pub fn four_u8s_to_u32(bytes: &[u8]) -> u32 {
   if bytes.len() >= 4 {
     (
       (u32::from(bytes[3]) << 24) |
-      (u32::from(bytes[2]) << 16) |
-      (u32::from(bytes[1]) << 8) |
-      (u32::from(bytes[0]))
+        (u32::from(bytes[2]) << 16) |
+        (u32::from(bytes[1]) << 8) |
+        (u32::from(bytes[0]))
     )
   } else {
     panic!("bytes array was too small to convert to u32.  Needed at least four elements in the bytes array");
@@ -312,3 +313,4 @@ fn test_four_bytes_to_u32() {
 
   assert_eq!(actual_num, expected_num);
 }
+
